@@ -7,7 +7,17 @@ It is built with a **TypeScript + Node.js backend** and a **React (Vite) fronten
 
 ## 🎥 Demo
 
+Below are screenshots from the app. Add your images to `frontend/public/demo/` named `screenshot-1.png` … `screenshot-7.png` and they will render here on GitHub.
 
+<div style="display:flex;flex-wrap:wrap;gap:12px;">
+	<img src="frontend/public/demo/screenshot-1.png" alt="Screenshot 1" width="320" />
+	<img src="frontend/public/demo/screenshot-2.png" alt="Screenshot 2" width="320" />
+	<img src="frontend/public/demo/screenshot-3.png" alt="Screenshot 3" width="320" />
+	<img src="frontend/public/demo/screenshot-4.png" alt="Screenshot 4" width="320" />
+	<img src="frontend/public/demo/screenshot-5.png" alt="Screenshot 5" width="320" />
+	<img src="frontend/public/demo/screenshot-6.png" alt="Screenshot 6" width="320" />
+	<img src="frontend/public/demo/screenshot-7.png" alt="Screenshot 7" width="320" />
+</div>
 
 ---
 
