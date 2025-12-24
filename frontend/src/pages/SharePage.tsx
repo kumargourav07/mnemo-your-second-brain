@@ -1,0 +1,284 @@
+// src/pages/SharePage.tsx
+import React, { useEffect, useState } from "react";
+import { useParams, Link } from "react-router-dom";
+import { Brain, Loader2, Home, AlertCircle, Search } from "lucide-react";
+import { Button } from "../components/ui/button";
+import { Input } from "../components/ui/input";
+import { ThemeToggle } from "../components/ui/ThemeToggle";
+import { ContentCard } from "../components/ContentCard";
+import api from "../lib/api";
+
+// Updated interface to include link field
+interface SharedContent {
+  _id: string;
+  title: string;
+  body: string | string[];
+  type: string;
+  tags: string[];
+  link?: string; // Added link field
+  createdAt: string;
+  updatedAt: string;
+}
+
+interface SharedBrainData {
+  username: string;
+  contents: SharedContent[];
+}
+
+export const SharePage: React.FC = () => {
+  const { shareHash } = useParams<{ shareHash: string }>();
+  const [data, setData] = useState<SharedBrainData | null>(null);
+  const [filteredContents, setFilteredContents] = useState<SharedContent[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [selectedType, setSelectedType] = useState<string>("all");
+
+  useEffect(() => {
+    const fetchSharedContent = async () => {
+      if (!shareHash) return;
+
+      setIsLoading(true);
+      setError(null);
+
+      try {
+        const response = await api.get(`/brain/${shareHash}`);
+
+        // Normalize common response shapes
+        let brainData: any = response.data;
+
+        // e.g. { brain: { username, contents } }
+        if (brainData.brain) {
+          brainData = brainData.brain;
+        }
+
+        // e.g. { content: [...] } -> normalize to contents
+        if (!brainData.contents && brainData.content) {
+          brainData.contents = brainData.content;
+        }
+
+        const normalized = {
+          username: brainData.username ?? "Unknown",
+          contents: Array.isArray(brainData.contents) ? brainData.contents : [],
+        };
+
+        setData(normalized);
+        setFilteredContents(normalized.contents);
+      } catch (err: any) {
+        console.error("Failed to fetch shared brain:", err);
+        if (err.response?.status === 404) {
+          setError("This shared brain link is invalid or has expired.");
+        } else {
+          setError("Failed to load shared content. Please try again later.");
+        }
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchSharedContent();
+  }, [shareHash]);
+
+  useEffect(() => {
+    if (!data) return;
+
+    let filtered = data.contents;
+
+    // Filter by type
+    if (selectedType && selectedType !== "all") {
+      filtered = filtered.filter(
+        (c) => c.type.toLowerCase() === selectedType.toLowerCase()
+      );
+    }
+
+    // Search - now includes link field
+    if (searchQuery) {
+      const lowerQuery = searchQuery.toLowerCase();
+      filtered = filtered.filter(
+        (c) =>
+          c.title.toLowerCase().includes(lowerQuery) ||
+          (typeof c.body === "string" ? c.body : c.body.join(" "))
+            .toLowerCase()
+            .includes(lowerQuery) ||
+          c.tags.some((tag) => tag.toLowerCase().includes(lowerQuery)) ||
+          (c.link && c.link.toLowerCase().includes(lowerQuery))
+      );
+    }
+
+    setFilteredContents(filtered);
+  }, [searchQuery, selectedType, data]);
+
+  const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setSearchQuery(e.target.value);
+  };
+
+  // Dummy handlers for ContentCard (share page is read-only)
+  const handleDelete = () => {
+    // No-op for share page - content is read-only
+  };
+
+  const handleShare = () => {
+    // No-op for share page - already shared
+  };
+
+  // Get unique types from contents
+  const contentTypes =
+    data?.contents && data.contents.length > 0
+      ? Array.from(new Set(data.contents.map((c) => c.type)))
+      : [];
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center">
+          <Loader2 className="h-12 w-12 animate-spin text-indigo-600 dark:text-indigo-400 mx-auto mb-4" />
+          <p className="text-muted-foreground">Loading shared brain...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center max-w-md">
+          <AlertCircle className="h-16 w-16 text-red-400 mx-auto mb-4" />
+          <h2 className="text-2xl font-semibold text-foreground mb-2">
+            Oops! Something went wrong
+          </h2>
+          <p className="text-muted-foreground mb-6">{error}</p>
+          <Link to="/auth">
+            <Button variant="outline" className="gap-2">
+              <Home className="h-4 w-4" />
+              Go to Home
+            </Button>
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
+  if (!data) {
+    return null;
+  }
+
+  return (
+    <div className="min-h-screen bg-background">
+      {/* Theme Toggle - Positioned at top right */}
+      <div className="absolute top-4 right-4 z-20">
+        <ThemeToggle />
+      </div>
+
+      {/* Header */}
+      <header className="bg-card border-b border-border sticky top-0 z-10">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <Brain className="h-8 w-8 text-indigo-600 dark:text-indigo-400" />
+              <div>
+                <h1 className="text-xl font-semibold text-foreground">
+                  {data.username}'s Second Brain
+                </h1>
+                <p className="text-sm text-muted-foreground">
+                  {data?.contents?.length ?? 0} shared
+                  {(data?.contents?.length ?? 0) === 1 ? " item" : " items"}
+                </p>
+              </div>
+            </div>
+
+            <Link to="/auth">
+              <Button variant="outline" className="gap-2">
+                <Brain className="h-4 w-4" />
+                Create Your Own
+              </Button>
+            </Link>
+          </div>
+
+          {/* Search and Filter Bar */}
+          <div className="mt-4 flex flex-col sm:flex-row gap-4">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                type="text"
+                placeholder="Search shared content..."
+                value={searchQuery}
+                onChange={handleSearch}
+                className="pl-10"
+              />
+            </div>
+
+            {contentTypes.length > 0 && (
+              <div className="flex gap-2 flex-wrap">
+                <Button
+                  variant={selectedType === "all" ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setSelectedType("all")}
+                >
+                  All
+                </Button>
+                {contentTypes.map((type) => (
+                  <Button
+                    key={type}
+                    variant={selectedType === type ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => setSelectedType(type)}
+                  >
+                    {type}
+                  </Button>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      </header>
+
+      {/* Content */}
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {filteredContents.length === 0 ? (
+          <div className="text-center py-16">
+            <Brain className="h-16 w-16 text-muted mx-auto mb-4" />
+            <p className="text-xl text-muted-foreground mb-2">
+              {searchQuery
+                ? "No matching content found"
+                : "No content to display"}
+            </p>
+            {searchQuery && (
+              <p className="text-sm text-muted-foreground">
+                Try adjusting your search query
+              </p>
+            )}
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            {filteredContents.map((content) => (
+              <ContentCard
+                key={content._id}
+                content={content as any} // Cast to match ContentCard interface
+                onDelete={handleDelete}
+                onShare={handleShare}
+              />
+            ))}
+          </div>
+        )}
+      </main>
+
+      {/* Footer */}
+      <footer className="bg-card border-t border-border mt-16">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+          <div className="text-center text-sm text-muted-foreground">
+            <p>This is a read-only view of {data.username}'s shared content.</p>
+            <p className="mt-2">
+              Want to create your own Second Brain?{" "}
+              <Link
+                to="/auth"
+                className="text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 font-medium"
+              >
+                Get started here
+              </Link>
+            </p>
+          </div>
+        </div>
+      </footer>
+    </div>
+  );
+};
