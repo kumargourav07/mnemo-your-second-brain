@@ -62,7 +62,7 @@ export const HomePage: React.FC = () => {
   useEffect(() => {
     if (!isAuthenticated) return;
 
-    fetchContents().catch((error) => {
+    fetchContents().catch(() => {
       toast.error("Failed to load contents. Please refresh the page.");
     });
   }, [fetchContents, isAuthenticated]);

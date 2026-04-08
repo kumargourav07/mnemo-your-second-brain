@@ -146,3 +146,46 @@ Built as a portfolio project to explore modern full-stack architecture and produ
 This project is licensed under the MIT License.
 
 ---
+
+## Render Deployment
+
+This repo includes a root `render.yaml` for Blueprint deploy with 2 services:
+
+- `mnemo-backend` (Node web service)
+- `mnemo-frontend` (static site)
+
+### 1. Push code to GitHub
+
+```bash
+git add .
+git commit -m "Add Render deployment config"
+git push
+```
+
+### 2. Create services from Blueprint
+
+1. Open Render dashboard.
+2. Click **New +** -> **Blueprint**.
+3. Select this repository.
+4. Render will detect `render.yaml` and create both services.
+
+### 3. Set required backend env vars in Render
+
+- `DB_URL` = your MongoDB Atlas connection string
+- `JWT_SECRET` = strong random secret
+
+`PORT` is injected by Render automatically for web services.
+
+### 4. Set frontend API URL
+
+After backend deploy is live, update frontend env var:
+
+- `VITE_API_URL=https://<your-backend-service>.onrender.com/api/v1`
+
+Then redeploy frontend once.
+
+### 5. Health check
+
+Backend health endpoint:
+
+- `/api/v1/health`

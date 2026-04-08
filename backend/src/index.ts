@@ -21,6 +21,10 @@ app.use(
 );
 app.use(express.json());
 
+app.get("/api/v1/health", (_req, res) => {
+  res.status(200).json({ status: "ok" });
+});
+
 app.use("/api/v1/users", userRoutes);
 app.use("/api/v1/content", contentRoutes);
 app.use("/api/v1", publicRoutes);
