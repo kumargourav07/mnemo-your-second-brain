@@ -12,12 +12,21 @@ const signupSchema = z.object({
 
 export const signup = async (req: Request, res: Response) => {
   const { username, password } = signupSchema.parse(req.body);
+  const normalizedUsername = username.trim();
+
+  const existingUser = await UserModel.findOne({ username: normalizedUsername });
+  if (existingUser) {
+    return res.status(409).json({
+      msg: "Username is already taken",
+      message: "Username is already taken",
+    });
+  }
 
   const salt = await bcrypt.genSalt(10);
   const hashedPassword = await bcrypt.hash(password, salt);
 
   await UserModel.create({
-    username,
+    username: normalizedUsername,
     password: hashedPassword,
   });
 
@@ -31,9 +40,10 @@ const signinSchema = z.object({
 
 export const signin = async (req: Request, res: Response) => {
   const { username, password } = signinSchema.parse(req.body);
+  const normalizedUsername = username.trim();
 
   // FIX: Explicitly select the password field which is excluded by default
-  const user = await UserModel.findOne({ username }).select("+password");
+  const user = await UserModel.findOne({ username: normalizedUsername }).select("+password");
   if (!user) {
     return res.status(404).json({ msg: "User not found" });
   }

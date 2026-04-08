@@ -21,6 +21,31 @@ interface AuthState {
   clearError: () => void;
 }
 
+const extractApiErrorMessage = (error: any, fallback: string): string => {
+  const data = error?.response?.data;
+  if (!data) {
+    if (error?.code === "ERR_NETWORK") {
+      return "Cannot reach the API server. Verify backend is running and VITE_API_URL points to it.";
+    }
+    if (typeof error?.message === "string" && error.message.trim()) {
+      return error.message;
+    }
+    return fallback;
+  }
+
+  if (typeof data.msg === "string" && data.msg.trim()) return data.msg;
+  if (typeof data.message === "string" && data.message.trim()) return data.message;
+
+  if (Array.isArray(data.errors) && data.errors.length > 0) {
+    const firstError = data.errors[0];
+    if (typeof firstError?.message === "string" && firstError.message.trim()) {
+      return firstError.message;
+    }
+  }
+
+  return fallback;
+};
+
 export const useAuthStore = create<AuthState>()(
   persist(
     (set, get) => ({
@@ -32,9 +57,10 @@ export const useAuthStore = create<AuthState>()(
 
       login: async (username: string, password: string) => {
         set({ isLoading: true, error: null });
+        const normalizedUsername = username.trim();
         try {
           const response = await api.post("/users/signin", {
-            username,
+            username: normalizedUsername,
             password,
           });
           const { token } = response.data;
@@ -46,12 +72,12 @@ export const useAuthStore = create<AuthState>()(
           set({
             token,
             isAuthenticated: true,
-            user: { id: "", username },
+            user: { id: "", username: normalizedUsername },
             isLoading: false,
           });
         } catch (error: any) {
           set({
-            error: error.response?.data?.msg || "Login failed",
+            error: extractApiErrorMessage(error, "Login failed"),
             isLoading: false,
           });
           throw error;
@@ -60,13 +86,17 @@ export const useAuthStore = create<AuthState>()(
 
       signup: async (username: string, password: string) => {
         set({ isLoading: true, error: null });
+        const normalizedUsername = username.trim();
         try {
-          await api.post("/users/signup", { username, password });
+          await api.post("/users/signup", {
+            username: normalizedUsername,
+            password,
+          });
           // After successful signup, automatically login
-          await get().login(username, password);
+          await get().login(normalizedUsername, password);
         } catch (error: any) {
           set({
-            error: error.response?.data?.msg || "Signup failed",
+            error: extractApiErrorMessage(error, "Signup failed"),
             isLoading: false,
           });
           throw error;

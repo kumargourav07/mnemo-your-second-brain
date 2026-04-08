@@ -11,6 +11,7 @@ export const errorMiddleware = (
 
   if (err instanceof ZodError) {
     return res.status(400).json({
+      msg: "Invalid input",
       message: "Invalid input",
       errors: err.issues.map((e: ZodIssue) => ({
         path: e.path,
@@ -22,8 +23,13 @@ export const errorMiddleware = (
   if (err.name === "MongoServerError" && (err as any).code === 11000) {
     return res
       .status(409)
-      .json({ message: "A resource with this value already exists." });
+      .json({
+        msg: "A resource with this value already exists.",
+        message: "A resource with this value already exists.",
+      });
   }
 
-  return res.status(500).json({ message: "Internal Server Error" });
+  return res
+    .status(500)
+    .json({ msg: "Internal Server Error", message: "Internal Server Error" });
 };
